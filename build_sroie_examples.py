@@ -31,7 +31,7 @@ IGNORE_LABEL = -100
 
 def parse_sroie_doc(ocr_path: Path, entity_path: Path):
     """Parse a single SROIE receipt (OCR file + entity JSON)."""
-    with open(entity_path, "r", encoding="utf-8") as f:
+    with open(entity_path, "r", encoding="utf-8", errors="replace") as f:
         entities = json.load(f)
 
     # Build word-level lookup for each entity type
@@ -44,7 +44,7 @@ def parse_sroie_doc(ocr_path: Path, entity_path: Path):
     bboxes = []
     labels = []
 
-    with open(ocr_path, "r", encoding="utf-8") as f:
+    with open(ocr_path, "r", encoding="utf-8", errors="replace") as f:
         for line in f:
             line = line.strip()
             if not line:
@@ -79,6 +79,20 @@ def parse_sroie_doc(ocr_path: Path, entity_path: Path):
             words.append(text)
             bboxes.append(bbox)
             labels.append(LABEL2ID[label])
+
+    # Normalize bboxes to 0-1000 range (LayoutLMv3 requirement)
+    if bboxes:
+        max_x = max(b[2] for b in bboxes) or 1
+        max_y = max(b[3] for b in bboxes) or 1
+        bboxes = [
+            [
+                min(int(b[0] * 1000 / max_x), 1000),
+                min(int(b[1] * 1000 / max_y), 1000),
+                min(int(b[2] * 1000 / max_x), 1000),
+                min(int(b[3] * 1000 / max_y), 1000),
+            ]
+            for b in bboxes
+        ]
 
     return words, bboxes, labels
 
