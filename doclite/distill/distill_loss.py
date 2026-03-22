@@ -14,7 +14,7 @@ from doclite.distill.attn_loss import attention_loss
 from doclite.distill.logit_loss import logits_loss
 
 
-def compute_distill_loss(teacher_out, student_out):
+def compute_distill_loss(teacher_out, student_out, attention_mask=None):
     """
     Compute total weighted distillation loss.
 
@@ -24,6 +24,7 @@ def compute_distill_loss(teacher_out, student_out):
             - attentions
             - logits
         student_out: dict with same keys
+        attention_mask: [batch, seq_len] optional mask to exclude padding
 
     Returns:
         dict with individual loss terms and total loss
@@ -40,7 +41,8 @@ def compute_distill_loss(teacher_out, student_out):
 
     loss_logits = logits_loss(
         teacher_out["logits"],
-        student_out["logits"]
+        student_out["logits"],
+        attention_mask=attention_mask,
     )
 
     total_loss = (

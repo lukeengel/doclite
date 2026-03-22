@@ -37,7 +37,9 @@ class StudentModel(torch.nn.Module):
         """
         THEORY:
         Student is trainable, so gradients should flow through it.
+        LiLT does not accept pixel_values, so we drop it if present.
         """
+        inputs.pop("pixel_values", None)
         out = self.model(**inputs)
 
         return {

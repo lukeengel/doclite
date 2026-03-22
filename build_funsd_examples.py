@@ -1,6 +1,7 @@
 import json
 from pathlib import Path
-from transformers import AutoTokenizer
+from PIL import Image
+from transformers import AutoTokenizer, LayoutLMv3ImageProcessor
 
 from doclite.configs.core import ENV
 
@@ -77,12 +78,29 @@ def tokenize_and_align(words, bboxes, labels, tokenizer, max_length=512):
     }
 
 
-def load_funsd_split(annotation_dir: Path, tokenizer):
+def load_funsd_split(annotation_dir: Path, tokenizer, image_dir: Path = None):
+    """
+    Load FUNSD split. If image_dir is provided, also loads document images
+    and produces pixel_values for LayoutLMv3's vision encoder.
+    """
+    image_processor = None
+    if image_dir is not None:
+        image_processor = LayoutLMv3ImageProcessor.from_pretrained("microsoft/layoutlmv3-base")
+
     examples = []
 
     for json_file in sorted(annotation_dir.glob("*.json")):
         words, bboxes, labels = parse_funsd_json(json_file)
         example = tokenize_and_align(words, bboxes, labels, tokenizer)
+
+        if image_dir is not None and image_processor is not None:
+            # FUNSD images are .png with same stem as the .json
+            image_path = image_dir / (json_file.stem + ".png")
+            if image_path.exists():
+                image = Image.open(image_path).convert("RGB")
+                pixel_values = image_processor(images=image, return_tensors="pt")["pixel_values"]
+                example["pixel_values"] = pixel_values.squeeze(0).tolist()
+
         examples.append(example)
 
     return examples

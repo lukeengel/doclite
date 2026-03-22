@@ -12,11 +12,15 @@ def evaluate_student(student, dataloader, device="cpu"):
     for batch in dataloader:
         batch = {k: v.to(device) for k, v in batch.items()}
 
-        outputs = student(
-            input_ids=batch["input_ids"],
-            attention_mask=batch["attention_mask"],
-            bbox=batch["bbox"],
-        )
+        fwd_kwargs = {
+            "input_ids": batch["input_ids"],
+            "attention_mask": batch["attention_mask"],
+            "bbox": batch["bbox"],
+        }
+        if "pixel_values" in batch:
+            fwd_kwargs["pixel_values"] = batch["pixel_values"]
+
+        outputs = student(**fwd_kwargs)
 
         preds = outputs["logits"].argmax(dim=-1)
         labels = batch["labels"]

@@ -105,7 +105,7 @@ for epoch in range(num_epochs):
         }
 
         # Distillation losses
-        distill_losses = compute_distill_loss(teacher_out, student_out)
+        distill_losses = compute_distill_loss(teacher_out, student_out, attention_mask=batch["attention_mask"])
         distill_loss = distill_losses["loss_total"]
 
         # Supervised task loss on student

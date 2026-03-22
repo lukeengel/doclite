@@ -2,12 +2,13 @@ import torch
 from doclite.models.teacher import TeacherModel
 from doclite.models.student import StudentModel
 
-teacher = TeacherModel("bert-base-uncased", num_labels=3)
-student = StudentModel("distilbert-base-uncased", num_labels=3)
+teacher = TeacherModel("microsoft/layoutlmv3-base", num_labels=4)
+student = StudentModel("SCUT-DLVCLab/lilt-roberta-en-base", num_labels=4)
 
 inputs = {
     "input_ids": torch.randint(0, 1000, (1, 8)),
     "attention_mask": torch.ones(1, 8, dtype=torch.long),
+    "bbox": torch.randint(0, 1000, (1, 8, 4)),
 }
 
 teacher_out = teacher(**inputs)
