@@ -1,5 +1,5 @@
 import torch
-from sklearn.metrics import f1_score
+from sklearn.metrics import f1_score, classification_report
 
 
 @torch.no_grad()
@@ -35,9 +35,12 @@ def evaluate_student(student, dataloader, device="cpu"):
 
     correct = sum(int(p == y) for p, y in zip(all_preds, all_labels))
     token_acc = correct / len(all_labels)
-    token_f1 = f1_score(all_labels, all_preds, average="micro")
+    token_f1_micro = f1_score(all_labels, all_preds, average="micro")
+    token_f1_macro = f1_score(all_labels, all_preds, average="macro")
 
     return {
         "token_acc": token_acc,
-        "token_f1": token_f1,
+        "token_f1": token_f1_macro,
+        "token_f1_micro": token_f1_micro,
+        "token_f1_macro": token_f1_macro,
     }
