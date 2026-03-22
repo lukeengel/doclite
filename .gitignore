@@ -36,3 +36,9 @@ data_processed/
 # Large binary files in materials
 materials/*.pptx
 materials/*.pdf
+
+# SROIE images (too large for git, text data is fine)
+data/sroie/*/img/
+
+# macOS zip artifacts
+__MACOSX/
