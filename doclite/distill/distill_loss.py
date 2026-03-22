@@ -8,6 +8,7 @@ This combines internal and external supervision:
 - logits loss
 """
 
+import torch
 from doclite.configs.core import WEIGHTS
 from doclite.distill.hidden_loss import hidden_state_loss
 from doclite.distill.attn_loss import attention_loss
@@ -29,21 +30,33 @@ def compute_distill_loss(teacher_out, student_out, attention_mask=None):
     Returns:
         dict with individual loss terms and total loss
     """
-    loss_hidden = hidden_state_loss(
-        teacher_out["hidden_states"],
-        student_out["hidden_states"]
-    )
+    # Only compute losses that have non-zero weights (avoids size
+    # mismatches when teacher has extra image tokens)
+    zero = torch.tensor(0.0, device=student_out["logits"].device)
 
-    loss_attn = attention_loss(
-        teacher_out["attentions"],
-        student_out["attentions"]
-    )
+    if WEIGHTS.ALPHA_HIDDEN > 0:
+        loss_hidden = hidden_state_loss(
+            teacher_out["hidden_states"],
+            student_out["hidden_states"]
+        )
+    else:
+        loss_hidden = zero
 
-    loss_logits = logits_loss(
-        teacher_out["logits"],
-        student_out["logits"],
-        attention_mask=attention_mask,
-    )
+    if WEIGHTS.BETA_ATTN > 0:
+        loss_attn = attention_loss(
+            teacher_out["attentions"],
+            student_out["attentions"]
+        )
+    else:
+        loss_attn = zero
+
+    # Logits: truncate teacher to student seq_len when teacher has image tokens
+    t_logits = teacher_out["logits"]
+    s_logits = student_out["logits"]
+    if t_logits.shape[1] != s_logits.shape[1]:
+        t_logits = t_logits[:, :s_logits.shape[1], :]
+
+    loss_logits = logits_loss(t_logits, s_logits, attention_mask=attention_mask)
 
     total_loss = (
         WEIGHTS.ALPHA_HIDDEN * loss_hidden
