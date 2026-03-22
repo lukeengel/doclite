@@ -34,11 +34,13 @@ def parse_sroie_doc(ocr_path: Path, entity_path: Path):
     with open(entity_path, "r", encoding="utf-8", errors="replace") as f:
         entities = json.load(f)
 
-    # Build word-level lookup for each entity type
+    # Build lookup: both full string and individual words for each entity
+    entity_vals = {}
     entity_words = {}
     for key in ["company", "date", "address", "total"]:
         val = entities.get(key, "")
-        entity_words[key] = [w.lower() for w in val.split()]
+        entity_vals[key] = val.lower().strip()
+        entity_words[key] = set(w.lower() for w in val.split())
 
     words = []
     bboxes = []
@@ -68,12 +70,20 @@ def parse_sroie_doc(ocr_path: Path, entity_path: Path):
             ys = coords[1::2]
             bbox = [min(xs), min(ys), max(xs), max(ys)]
 
-            # Assign label by fuzzy matching against entity values
+            # Assign label: check if OCR text (or any word in it) matches an entity
             label = "other"
-            text_lower = text.lower()
-            for key, val_words in entity_words.items():
-                if text_lower in val_words:
+            text_lower = text.lower().strip()
+            for key in ["company", "date", "address", "total"]:
+                # Check if whole OCR text is a substring of entity value, or vice versa
+                if text_lower in entity_vals[key] or entity_vals[key] in text_lower:
                     label = key
+                    break
+                # Check if any individual word in the OCR text matches an entity word
+                for w in text_lower.split():
+                    if w and w in entity_words[key]:
+                        label = key
+                        break
+                if label != "other":
                     break
 
             words.append(text)
